@@ -81,57 +81,122 @@ GROUP BY
 ORDER BY 2
 
 
-
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
+
 SELECT 
- H.DECADE,
- H.TYPE,
- ROUND(CAST(H.STRIKE_OUTS AS NUMERIC)/CAST(T.TOTAL_GAMES AS NUMERIC),2) AVG_STRIKE_OUTS,
- ROUND(CAST(H.HRS AS NUMERIC)/CAST(T.TOTAL_GAMES AS NUMERIC),2) AVG_HRS
-FROM 
-(
-SELECT 
- 'BATTING' TYPE,
  CONCAT(SUBSTRING(CAST(YEARID AS VARCHAR(4)),1,3),'0','s') DECADE,
- SUM(SO) STRIKE_OUTS,
- SUM(HR) HRS
-FROM BATTING WHERE YEARID > 1920
-GROUP BY 
-CONCAT(SUBSTRING(CAST(YEARID AS VARCHAR(4)),1,3),'0','s')) H
- INNER JOIN 
-(SELECT 
- CONCAT(SUBSTRING(CAST(YEAR AS VARCHAR(4)),1,3),'0','s') DECADE, 
- SUM(GAMES) TOTAL_GAMES  FROM HOMEGAMES GROUP BY CONCAT(SUBSTRING(CAST(YEAR AS VARCHAR(4)),1,3),'0','s')) T ON H.DECADE = T.DECADE  
-
-UNION
-
-SELECT 
- H.DECADE,
- H.TYPE,
- ROUND(CAST(H.STRIKE_OUTS AS NUMERIC)/CAST(T.TOTAL_GAMES AS NUMERIC),2) AVG_STRIKE_OUTS,
- ROUND(CAST(H.HRS AS NUMERIC)/CAST(T.TOTAL_GAMES AS NUMERIC),2) AVG_HRS
+-- SUM(G) TOTAL_GAMES,
+ --SUM(SO) STRIKE_OUTS,
+ ROUND(CAST(SUM(SO) AS NUMERIC)/CAST(SUM(G)AS NUMERIC),2) AVG_STRIKEOUT_PER_GAME,
+-- SUM(HR) HRS,
+ ROUND(CAST(SUM(HR) AS NUMERIC)/CAST(SUM(G)AS NUMERIC),2) AVG_HR_PER_GAME
 FROM 
-(
-SELECT 
- 'PITCHING' TYPE,
- CONCAT(SUBSTRING(CAST(YEARID AS VARCHAR(4)),1,3),'0','s') DECADE,
- SUM(SO) STRIKE_OUTS,
- SUM(HR) HRS
-FROM PITCHING WHERE YEARID > 1920
-GROUP BY 
-CONCAT(SUBSTRING(CAST(YEARID AS VARCHAR(4)),1,3),'0','s')) H
- INNER JOIN 
-(SELECT 
- CONCAT(SUBSTRING(CAST(YEAR AS VARCHAR(4)),1,3),'0','s') DECADE, 
- SUM(GAMES) TOTAL_GAMES  FROM HOMEGAMES GROUP BY CONCAT(SUBSTRING(CAST(YEAR AS VARCHAR(4)),1,3),'0','s')) T ON H.DECADE = T.DECADE  
+ TEAMS
+GROUP BY
+ CONCAT(SUBSTRING(CAST(YEARID AS VARCHAR(4)),1,3),'0','s')
+ORDER BY 1
 
-WHERE TYPE ='BATTING'
-ORDER BY 1,2
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 	
 
--- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
+SELECT
+*
+FROM BATTING 
+
+WHERE YEARID = 2016 
+
+
+
+-- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. 
+
+SELECT 'MOST_WINS_NO_WS_WIN' TYPE, * FROM 
+(SELECT
+ YEARID,
+ TEAMID,
+ SUM(W) WINS,
+ COALESCE(WSWIN,'N') WS_WIN
+FROM
+ TEAMS 
+WHERE
+ YEARID BETWEEN 1970 AND 2016 
+GROUP BY
+ YEARID,
+ TEAMID,
+ COALESCE(WSWIN,'N'))
+WHERE WS_WIN='N' AND WINS =
+(SELECT
+ MAX(WINS)
+FROM(
+SELECT
+ YEARID,
+ TEAMID,
+ SUM(W) WINS,
+ COALESCE(WSWIN,'N') WS_WIN
+FROM
+ TEAMS 
+WHERE
+ YEARID BETWEEN 1970 AND 2016 AND COALESCE(WSWIN,'N') ='N'
+GROUP BY
+ YEARID,
+ TEAMID,
+ COALESCE(WSWIN,'N')))
+ UNION
+ SELECT 'LEAST_WINS_WS_WIN' TYPE, * FROM 
+(SELECT
+ YEARID,
+ TEAMID,
+ SUM(W) WINS,
+ COALESCE(WSWIN,'N') WS_WIN
+FROM
+ TEAMS 
+WHERE
+ YEARID BETWEEN 1970 AND 2016 
+GROUP BY
+ YEARID,
+ TEAMID,
+ COALESCE(WSWIN,'N')) 
+WHERE WS_WIN = 'Y' AND WINS =
+(SELECT
+ MIN(WINS)
+FROM(
+SELECT
+ YEARID,
+ TEAMID,
+ SUM(W) WINS,
+ COALESCE(WSWIN,'N') WS_WIN
+FROM
+ TEAMS 
+WHERE
+ YEARID BETWEEN 1970 AND 2016 AND COALESCE(WSWIN,'N') ='Y'
+GROUP BY
+ YEARID,
+ TEAMID,
+ COALESCE(WSWIN,'N')))
+ 
+ ORDER BY 1 DESC
+
+--"MOST_WINS_NO_WS_WIN"	2001	"SEA"	116	
+--"LEAST_WINS_WS_WIN"	1981	"LAN"	63	
+
+-- 7. PART 2 Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
+
+SELECT
+ YEARID,
+ TEAMID,
+ SUM(W) WINS,
+ COALESCE(WSWIN,'N') WS_WIN
+FROM
+ TEAMS 
+WHERE
+ YEARID BETWEEN 1970 AND 2016 AND YEARID <> 1981
+GROUP BY
+ YEARID,
+ TEAMID,
+ COALESCE(WSWIN,'N')
+ORDER BY 1
+
+ 
 
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
