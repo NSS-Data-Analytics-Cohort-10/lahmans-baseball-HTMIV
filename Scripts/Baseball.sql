@@ -359,14 +359,15 @@ WHERE
  H.YEAR = 2016)
 SELECT
  RANKING,
- ATTENANCE_TYPE
+ ATTENANCE_TYPE,
  TEAM_NAME,
  BALL_PARK,
  AVG_ATTENDANCE
 FROM X 
-WHERE RANKING BETWEEN 1 AND 5
+ WHERE 
+ RANKING BETWEEN 1 AND 5
 ORDER BY
-2 DESC,1
+ 2,1
 
 
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
